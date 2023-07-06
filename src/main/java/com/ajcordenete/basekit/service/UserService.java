@@ -5,6 +5,7 @@ import com.ajcordenete.basekit.data.RegisterRequest;
 import com.ajcordenete.basekit.entity.User;
 import com.ajcordenete.basekit.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
 
+    @Autowired
     private UserRepository userRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     public Optional<User> getUserByEmail(String email) {
