@@ -33,7 +33,7 @@ public class UserService {
         newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         newUser.setRole(Role.USER);
         newUser.setIsEnabled(true);
-        newUser.setIsNonLocked(true);
+        newUser.setIsLocked(false);
 
         return userRepository.save(newUser);
     }

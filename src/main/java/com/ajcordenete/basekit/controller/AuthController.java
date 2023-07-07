@@ -1,5 +1,6 @@
 package com.ajcordenete.basekit.controller;
 
+import com.ajcordenete.basekit.data.AuthResponse;
 import com.ajcordenete.basekit.data.LoginRequest;
 import com.ajcordenete.basekit.data.RegisterRequest;
 import com.ajcordenete.basekit.entity.User;
@@ -30,8 +31,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public User login(@RequestBody LoginRequest loginRequest) {
-        return authenticationService.authenticate(loginRequest);
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest loginRequest) {
+        return ResponseEntity.ok(authenticationService.authenticate(loginRequest));
     }
 
 }

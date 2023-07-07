@@ -1,6 +1,7 @@
 package com.ajcordenete.basekit.entity;
 
 import com.ajcordenete.basekit.constant.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,6 +40,7 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -47,9 +49,11 @@ public class User implements UserDetails {
 
     private String pinCode;
 
+    @Column(nullable = false, columnDefinition = "BIT(1) DEFAULT 1")
     private Boolean isEnabled;
 
-    private Boolean isNonLocked;
+    @Column(nullable = false, columnDefinition = "BIT(1) DEFAULT 1")
+    private Boolean isLocked;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -58,7 +62,7 @@ public class User implements UserDetails {
 
     @Override
     public String getPassword() {
-        return email;
+        return password;
     }
 
     @Override
@@ -73,7 +77,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return isNonLocked;
+        return !isLocked;
     }
 
     @Override
