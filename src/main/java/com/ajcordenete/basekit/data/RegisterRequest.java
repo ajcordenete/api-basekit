@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public class RegisterRequest {
     private String firstName;
     private String lastName;
-    private String middleName;
+    private String fullName;
     private String email;
     private LocalDate dateOfBirth;
     private String password;

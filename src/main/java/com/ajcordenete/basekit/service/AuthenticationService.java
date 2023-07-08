@@ -32,7 +32,7 @@ public class AuthenticationService {
 
     private final AuthenticationManager authenticationManager;
 
-    private final TokenRepository tokenRepository;
+    private final TokenService tokenService;
 
     private final JwtService jwtService;
 
@@ -57,6 +57,7 @@ public class AuthenticationService {
 
     public AuthResponse registerUser(RegisterRequest registerRequest) {
         User newUser = new User();
+        newUser.setFullName(registerRequest.getFullName());
         newUser.setFirstName(registerRequest.getFirstName());
         newUser.setLastName(registerRequest.getLastName());
         newUser.setEmail(registerRequest.getEmail());
@@ -95,52 +96,7 @@ public class AuthenticationService {
     }
 
     private void handleUserTokens(User user, String jwtToken) {
-        revokeAllUserTokens(user);
-        saveUserToken(user, jwtToken);
-    }
-
-    private void saveUserToken(User user, String jwtToken) {
-        var token = Token.builder()
-                .user(user)
-                .token(jwtToken)
-                .tokenType(TokenType.BEARER)
-                .expired(false)
-                .revokeToken(false)
-                .build();
-        tokenRepository.save(token);
-    }
-
-    private void revokeAllUserTokens(User user) {
-        var validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
-        if (validUserTokens.isEmpty())
-            return;
-        validUserTokens.forEach(token -> {
-            token.setExpired(true);
-            token.setRevokeToken(true);
-        });
-        tokenRepository.saveAll(validUserTokens);
-    }
-
-    public void refreshToken(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws IOException {
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        final String refreshToken;
-        final String userEmail;
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return;
-        }
-        refreshToken = authHeader.substring(7);
-        userEmail = jwtService.getEmail(refreshToken);
-        if (userEmail != null) {
-            var user = this.userRepository.findByEmail(userEmail)
-                    .orElseThrow();
-            if (jwtService.isTokenValid(refreshToken, user)) {
-                var accessToken = jwtService.generateToken(user);
-                revokeAllUserTokens(user);
-                saveUserToken(user, accessToken);
-            }
-        }
+        tokenService.revokeAllUserTokens(user);
+        tokenService.saveUserToken(user, jwtToken);
     }
 }

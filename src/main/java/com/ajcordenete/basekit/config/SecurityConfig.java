@@ -26,8 +26,8 @@ public class SecurityConfig {
         return httpSecurity
                 .csrf( csrf -> csrf.disable())
                 .authorizeHttpRequests( configurer -> configurer
-                        .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/api/app/**")).hasAnyRole(Role.USER.name())
+                        .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/app/**")).hasAnyAuthority(Role.USER.name())
                         .anyRequest()
                         .authenticated()
                 )

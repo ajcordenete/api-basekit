@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Data
 @Builder
@@ -23,7 +24,7 @@ public class Token {
     @Column(unique = true, nullable = false)
     private String token;
 
-    private LocalDateTime expirationDate;
+    private Date expirationDate;
 
     @Enumerated(EnumType.STRING)
     public TokenType tokenType = TokenType.BEARER;

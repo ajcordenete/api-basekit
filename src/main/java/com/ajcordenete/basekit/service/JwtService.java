@@ -1,16 +1,20 @@
 package com.ajcordenete.basekit.service;
 
 import com.ajcordenete.basekit.entity.User;
+import com.ajcordenete.basekit.util.DateTimeUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,11 +23,14 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    @Autowired
+    private DateTimeUtil dateTimeUtil;
+
     @Value("${jwt.secret-key}")
     private String SECRET_KEY;
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration_hour}")
     private long EXPIRATION;
-    @Value("${jwt.refresh-token.expiration}")
+    @Value("${jwt.refresh-token.expiration_hour}")
     private long REFRESH_TOKEN_EXPIRATION;
 
     public String getEmail(String token) {
@@ -61,8 +68,8 @@ public class JwtService {
                 .builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(EXPIRATION)) //24 hours
+                .setIssuedAt(dateTimeUtil.getCurrentDateFromInstant())
+                .setExpiration(dateTimeUtil.getFutureDateFromNow(EXPIRATION, ChronoUnit.HOURS))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
