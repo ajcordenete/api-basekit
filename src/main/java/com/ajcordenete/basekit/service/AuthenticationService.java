@@ -1,8 +1,10 @@
 package com.ajcordenete.basekit.service;
 
+import com.ajcordenete.basekit.constant.Role;
 import com.ajcordenete.basekit.constant.TokenType;
 import com.ajcordenete.basekit.data.AuthResponse;
 import com.ajcordenete.basekit.data.LoginRequest;
+import com.ajcordenete.basekit.data.RegisterRequest;
 import com.ajcordenete.basekit.entity.Token;
 import com.ajcordenete.basekit.entity.User;
 import com.ajcordenete.basekit.repository.TokenRepository;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,7 +26,7 @@ import java.io.IOException;
 @Slf4j
 public class AuthenticationService {
 
-    private final UserRepository repository;
+    private final UserRepository userRepository;
 
     private final AuthenticationManager authenticationManager;
 
@@ -31,36 +34,48 @@ public class AuthenticationService {
 
     private final JwtService jwtService;
 
+    private final PasswordEncoder passwordEncoder;
+
     public AuthResponse authenticate(LoginRequest request) {
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
-            var user = repository.findByEmail(request.getEmail())
-                    .orElseThrow();
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()
+                )
+        );
+        var user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow();
 
-            var jwtToken = jwtService.generateToken(user);
+        return createAuthResponse(user);
+    }
 
-            var refreshToken = jwtService.generateRefreshToken(user);
+    public AuthResponse registerUser(RegisterRequest registerRequest) {
+        User newUser = new User();
+        newUser.setFirstName(registerRequest.getFirstName());
+        newUser.setLastName(registerRequest.getLastName());
+        newUser.setEmail(registerRequest.getEmail());
+        newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        newUser.setRole(Role.USER);
+        newUser.setIsEnabled(true);
+        newUser.setIsLocked(false);
 
-            revokeAllUserTokens(user);
-            saveUserToken(user, jwtToken);
+        userRepository.save(newUser);
 
-            return AuthResponse.builder()
-                    .accessToken(jwtToken)
-                    .refreshToken(refreshToken)
-                    .build();
+        return createAuthResponse(newUser);
+    }
 
-        } catch (BadCredentialsException | DisabledException | LockedException e) {
-            log.error(e.getMessage());
-            return AuthResponse.builder()
-                    .accessToken("")
-                    .refreshToken("")
-                    .build();
-        }
+    private AuthResponse createAuthResponse(User user) {
+        String jwtToken = jwtService.generateToken(user);
+
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        revokeAllUserTokens(user);
+        saveUserToken(user, jwtToken);
+
+        return AuthResponse.builder()
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 
     private void saveUserToken(User user, String jwtToken) {
@@ -98,7 +113,7 @@ public class AuthenticationService {
         refreshToken = authHeader.substring(7);
         userEmail = jwtService.getEmail(refreshToken);
         if (userEmail != null) {
-            var user = this.repository.findByEmail(userEmail)
+            var user = this.userRepository.findByEmail(userEmail)
                     .orElseThrow();
             if (jwtService.isTokenValid(refreshToken, user)) {
                 var accessToken = jwtService.generateToken(user);
