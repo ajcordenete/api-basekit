@@ -9,7 +9,11 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthResponse extends BaseResponse {
+public class BaseResponse {
 
-    private UserTokenResponse data;
+    private Boolean success;
+
+    private Integer status;
+
+    private String message;
 }

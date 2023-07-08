@@ -37,6 +37,9 @@ public class User implements UserDetails {
     @NotNull
     private String lastName;
 
+    @NotNull
+    private String fullName;
+
     @Column(nullable = false, unique = true)
     private String email;
 

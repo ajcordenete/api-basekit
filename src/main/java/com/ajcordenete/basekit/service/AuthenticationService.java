@@ -5,17 +5,19 @@ import com.ajcordenete.basekit.constant.TokenType;
 import com.ajcordenete.basekit.data.AuthResponse;
 import com.ajcordenete.basekit.data.LoginRequest;
 import com.ajcordenete.basekit.data.RegisterRequest;
+import com.ajcordenete.basekit.data.UserTokenResponse;
 import com.ajcordenete.basekit.entity.Token;
 import com.ajcordenete.basekit.entity.User;
 import com.ajcordenete.basekit.repository.TokenRepository;
 import com.ajcordenete.basekit.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +48,11 @@ public class AuthenticationService {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow();
 
-        return createAuthResponse(user);
+        String jwtToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        handleUserTokens(user, jwtToken);
+
+        return createAuthResponse(HttpStatus.OK, user, jwtToken, refreshToken);
     }
 
     public AuthResponse registerUser(RegisterRequest registerRequest) {
@@ -61,21 +67,36 @@ public class AuthenticationService {
 
         userRepository.save(newUser);
 
-        return createAuthResponse(newUser);
+        String jwtToken = jwtService.generateToken(newUser);
+        String refreshToken = jwtService.generateRefreshToken(newUser);
+        handleUserTokens(newUser, jwtToken);
+
+        return createAuthResponse(HttpStatus.CREATED, newUser, jwtToken, refreshToken);
     }
 
-    private AuthResponse createAuthResponse(User user) {
-        String jwtToken = jwtService.generateToken(user);
+    private AuthResponse createAuthResponse(
+            HttpStatus status,
+            User user,
+            String jwtToken,
+            String refreshToken
+    ) {
+        return AuthResponse.builder()
+                .success(true)
+                .status(status.value())
+                .message(status.getReasonPhrase())
+                .data(
+                        new UserTokenResponse(
+                                user,
+                                jwtToken,
+                                refreshToken
+                        )
+                )
+                .build();
+    }
 
-        String refreshToken = jwtService.generateRefreshToken(user);
-
+    private void handleUserTokens(User user, String jwtToken) {
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
-
-        return AuthResponse.builder()
-                .accessToken(jwtToken)
-                .refreshToken(refreshToken)
-                .build();
     }
 
     private void saveUserToken(User user, String jwtToken) {
@@ -119,11 +140,6 @@ public class AuthenticationService {
                 var accessToken = jwtService.generateToken(user);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
-                var authResponse = AuthResponse.builder()
-                        .accessToken(accessToken)
-                        .refreshToken(refreshToken)
-                        .build();
-                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
             }
         }
     }
